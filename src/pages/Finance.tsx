@@ -17,10 +17,11 @@ export default function Finance() {
   const [investigateModalOpen, setInvestigateModalOpen] = useState(false);
   const [costModalOpen, setCostModalOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<DailyTransaction | null>(null);
-  const [reconciliationData, setReconciliationData] = useState<ReconciliationRecord[]>([]);
+  const [reconciliationList, setReconciliationList] = useState<ReconciliationRecord[]>([]);
+  const [selectedReconciliation, setSelectedReconciliation] = useState<ReconciliationRecord | null>(null);
   const [costData, setCostData] = useState<CostDetailItem[]>([]);
   const [submitting, setSubmitting] = useState(false);
-  const [dateRange, setDateRange] = useState({ start: '', end: '' });
+  const [dateRange, setDateRange] = useState({ from: '', to: '' });
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'transactions' | 'reconciliation'>('transactions');
 
@@ -34,8 +35,8 @@ export default function Finance() {
       setLoading(true);
       setError(null);
       const params: Record<string, string> = {};
-      if (dateRange.start) params.startDate = dateRange.start;
-      if (dateRange.end) params.endDate = dateRange.end;
+      if (dateRange.from) params.startDate = dateRange.from;
+      if (dateRange.to) params.endDate = dateRange.to;
       if (statusFilter) params.status = statusFilter;
       const response = await api.get<ApiResponse<PaginationResult<DailyTransaction>>>('/finance/transactions', { params });
       setTransactions(response.data.data.list);
@@ -48,10 +49,18 @@ export default function Finance() {
 
   const fetchReconciliation = async () => {
     try {
-      const response = await api.get<ApiResponse<PaginationResult<ReconciliationRecord>>>('/finance/reconciliation');
-      setReconciliationData(response.data.data.list);
+      setLoading(true);
+      setError(null);
+      const params: Record<string, string> = {};
+      if (dateRange.from) params.startDate = dateRange.from;
+      if (dateRange.to) params.endDate = dateRange.to;
+      if (statusFilter) params.status = statusFilter;
+      const response = await api.get<ApiResponse<PaginationResult<ReconciliationRecord>>>('/finance/reconciliation', { params });
+      setReconciliationList(response.data.data.list);
     } catch (err: any) {
-      setError(err.message || '加载对账数据失败');
+      setError(err.message || '加载对账记录失败');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -80,14 +89,29 @@ export default function Finance() {
     setDetailModalOpen(true);
   };
 
+  const handleViewReconciliationDetail = (record: ReconciliationRecord) => {
+    setSelectedReconciliation(record);
+    setReconciliationModalOpen(true);
+  };
+
+  const openReconciliationInvestigateModal = (record: ReconciliationRecord) => {
+    setSelectedReconciliation(record);
+    setInvestigateData({ reason: '', priority: 'normal' });
+    setInvestigateModalOpen(true);
+  };
+
   const handleInvestigate = async () => {
-    if (!selectedTransaction || !investigateData.reason) return;
+    const recordId = selectedReconciliation?.id || selectedTransaction?.id;
+    if (!recordId || !investigateData.reason) return;
     try {
       setSubmitting(true);
-      await api.post(`/finance/reconciliation/${selectedTransaction.id}/investigate`, investigateData);
+      await api.post(`/finance/reconciliation/${recordId}/investigate`, investigateData);
       setInvestigateModalOpen(false);
       setInvestigateData({ reason: '', priority: 'normal' });
-      fetchReconciliation();
+      setReconciliationList(prev => prev.map(item => 
+        item.id === recordId ? { ...item, status: 'investigating' } : item
+      ));
+      setSelectedReconciliation(null);
     } catch (err: any) {
       setError(err.message || '触发核查失败');
     } finally {
@@ -423,19 +447,18 @@ export default function Finance() {
           <div className="flex items-center gap-2">
             <input
               type="date"
-              value={dateRange.start}
-              onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
+              value={dateRange.from}
+              onChange={(e) => setDateRange({ ...dateRange, from: e.target.value })}
               className="bg-slate-800/50 border border-slate-700/50 rounded-xl py-2 px-3 text-slate-200 text-sm focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all"
             />
             <span className="text-slate-500">至</span>
             <input
               type="date"
-              value={dateRange.end}
-              onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
+              value={dateRange.to}
+              onChange={(e) => setDateRange({ ...dateRange, to: e.target.value })}
               className="bg-slate-800/50 border border-slate-700/50 rounded-xl py-2 px-3 text-slate-200 text-sm focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all"
             />
           </div>
-          {activeTab === 'transactions' && (
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
@@ -445,7 +468,6 @@ export default function Finance() {
                 <option key={opt.value} value={opt.value}>{opt.label}</option>
               ))}
             </select>
-          )}
           <button
             onClick={() => {
               if (activeTab === 'transactions') {
@@ -474,7 +496,7 @@ export default function Finance() {
       ) : (
         <DataTable
           columns={reconciliationColumns}
-          data={reconciliationData}
+          data={reconciliationList}
           loading={loading}
           rowKey="id"
           emptyText="暂无对账数据"

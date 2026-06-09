@@ -65,7 +65,7 @@ router.get('/operation', authMiddleware, roleMiddleware(3), (req: AuthRequest, r
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(dishData), '菜品销量');
     const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    let fileName = 'operation_report_' + targetPeriod; if (regionId && String(regionId)) { const region = db.getRegions().find(r => r.id === String(regionId)); if (region) fileName += '_' + region.name; } if (storeId && String(storeId)) { const store = db.getStores().find(s => s.id === String(storeId)); if (store) fileName += '_' + store.name; } fileName += '.xlsx'; res.setHeader('Content-Disposition', 'attachment; filename=' + fileName);
+    let fileName = 'operation_report_' + targetPeriod; if (regionId && String(regionId)) { fileName += '_' + String(regionId); } if (storeId && String(storeId)) { fileName += '_' + String(storeId); } fileName += '.xlsx'; res.setHeader('Content-Disposition', 'attachment; filename=' + fileName);
     return res.send(buf);
     }
   } catch (e) {

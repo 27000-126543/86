@@ -19,6 +19,7 @@ export default function Inspection() {
   const [selectedRecord, setSelectedRecord] = useState<InspectionRecord | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>('');
+  const [generatingWorkOrder, setGeneratingWorkOrder] = useState<string | null>(null);
 
   const [checkinData, setCheckinData] = useState({ storeId: '' });
   const [reportData, setReportData] = useState({
@@ -98,6 +99,30 @@ export default function Inspection() {
     }
   };
 
+
+  const handleCreateWorkOrder = async (issueId: string, type: 'recall' | 'offline') => {
+    if (!selectedRecord) return;
+    try {
+      setGeneratingWorkOrder(issueId);
+      const response = await api.post<ApiResponse<{ workOrderId: string }>>('/inspection/create-work-order', {
+        inspectionId: selectedRecord.id,
+        issueId,
+        type,
+      });
+      const workOrderId = response.data.data.workOrderId;
+      const updatedIssues = selectedRecord.issues.map(issue =>
+        issue.id === issueId ? { ...issue, workOrderId } : issue
+      );
+      setSelectedRecord({ ...selectedRecord, issues: updatedIssues });
+      setRecords(records.map(r =>
+        r.id === selectedRecord.id ? { ...r, issues: updatedIssues } : r
+      ));
+    } catch (err: any) {
+      setError(err.message || '生成工单失败');
+    } finally {
+      setGeneratingWorkOrder(null);
+    }
+  };
   const openReportModal = (record: InspectionRecord) => {
     setSelectedRecord(record);
     setReportData({ description: '', type: 'other', severity: 'medium' });
@@ -369,6 +394,39 @@ export default function Inspection() {
                           <span className="text-xs text-slate-500">{formatDateTime(issue.createdAt)}</span>
                         </div>
                         <p className="text-sm text-slate-300">{issue.description}</p>
+                        {(issue.type === 'expired' || issue.type === 'deteriorated') && (
+                          <div className="mt-3 pt-3 border-t border-red-500/20 flex items-center gap-2 flex-wrap">
+                            {issue.workOrderId ? (
+                              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-500/10 text-blue-400 text-xs border border-blue-500/30">
+                                <FileText className="w-3.5 h-3.5" />
+                                工单编号：{issue.workOrderId}
+                              </span>
+                            ) : (
+                              <>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleCreateWorkOrder(issue.id, 'offline');
+                                  }}
+                                  disabled={generatingWorkOrder === issue.id}
+                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-orange-500/10 text-orange-400 text-xs border border-orange-500/30 hover:bg-orange-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                >
+                                  {generatingWorkOrder === issue.id ? '生成中...' : '发起下架工单'}
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleCreateWorkOrder(issue.id, 'recall');
+                                  }}
+                                  disabled={generatingWorkOrder === issue.id}
+                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/10 text-red-400 text-xs border border-red-500/30 hover:bg-red-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                >
+                                  {generatingWorkOrder === issue.id ? '生成中...' : '发起召回工单'}
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>

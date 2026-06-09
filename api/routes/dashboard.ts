@@ -88,6 +88,7 @@ router.get('/alerts', authMiddleware, (req: AuthRequest, res) => {
     const user = req.user;
     const regionId = req.query.regionId ? String(req.query.regionId) : '';
     const storeId = req.query.storeId ? String(req.query.storeId) : '';
+    const date = req.query.date ? String(req.query.date) : '';
     let alerts = db.getAlerts();
     
     if (user.roleLevel <= 2 && user.storeId) {
@@ -112,6 +113,7 @@ router.get('/alerts', authMiddleware, (req: AuthRequest, res) => {
       }
     }
 
+    
     if (date) {
       const targetDate = dayjs(date).format('YYYY-MM-DD');
       alerts = alerts.filter(a => dayjs(a.createdAt).format('YYYY-MM-DD') === targetDate);
@@ -121,7 +123,7 @@ router.get('/alerts', authMiddleware, (req: AuthRequest, res) => {
       code: 200,
       message: 'success',
       data: alerts
-    });
+    } as ApiResponse<AlertItem[]>);
   } catch (error) {
     console.error('Dashboard alerts error:', error);
     res.status(500).json({ code: 500, message: String(error), data: null });
