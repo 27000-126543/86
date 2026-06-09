@@ -101,13 +101,15 @@ export interface PurchaseItem {
 }
 
 export interface ApprovalRecord {
-  id: string;
-  approverId: string;
-  approverName: string;
-  role: string;
-  action: 'approve' | 'reject' | 'escalate';
-  comment: string;
-  createdAt: string;
+  id?: string;
+  level?: number;
+  status?: string;
+  approverId?: string;
+  approverName?: string;
+  role?: string;
+  action?: 'approve' | 'reject' | 'escalate' | 'pending';
+  comment?: string;
+  createdAt?: string;
 }
 
 export interface PurchaseOrder {
@@ -426,13 +428,13 @@ export interface DashboardStats {
   totalStores: number;
   deliveriesInTransit: number;
   alertDeliveries: number;
-  topDishes: { name: string; sales: number; trend: number }[];
+  topDishes: { name: string; sales: number; trend?: number; growth?: number; dishName?: string; category?: string; quantity?: number; revenue?: number; revenueShare?: number }[];
   recentAlerts: AlertItem[];
   hourlyRevenue: { hour: string; revenue: number }[];
   regionalRevenue: { region: string; revenue: number; target: number }[];
   todayOrders?: number;
   todayRevenue?: number;
-  dishRanking?: { name: string; sales: number; growth: number; dishName?: string; category?: string; quantity?: number; revenue?: number; revenueShare?: number }[];
+  dishRanking?: { name: string; sales: number; growth: number; trend?: number; dishName?: string; category?: string; quantity?: number; revenue?: number; revenueShare?: number }[];
   deliveryOnTimeRate?: number;
   inTransitCount?: number;
   alertCount?: number;
@@ -494,7 +496,7 @@ export interface MonthlyOperationReport {
   topStores: { name: string; revenue: number }[];
   bottomStores: { name: string; revenue: number }[];
   storeRanking?: { name: string; revenue: number; growth: number }[];
-  dishRanking: { name: string; sales: number; growth: number; dishName?: string; category?: string; quantity?: number; revenue?: number; revenueShare?: number }[];
+  dishRanking: { name: string; sales: number; growth: number; trend?: number; dishName?: string; category?: string; quantity?: number; revenue?: number; revenueShare?: number }[];
   costDetails: CostDetailItem[];
   targetRevenue?: number;
   revenueGrowthYoy?: number;

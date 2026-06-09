@@ -232,7 +232,7 @@ router.post('/create-purchase', authMiddleware, roleMiddleware(2), (req: AuthReq
     currentApprover,
     currentApproverName,
     createdAt: dayjs().format('YYYY-MM-DD HH:mm:ss'),
-    approvalHistory: [],
+    approvalHistory: [{ id: 'init_' + Date.now(), level: rules && totalAmount > rules.level3Threshold ? 3 : totalAmount > rules.level2Threshold ? 2 : 1, status: 'pending', action: 'pending', approverId: currentApprover, approverName: currentApproverName, role: '审批人', comment: '采购单已创建，等待审批', createdAt: dayjs().format('YYYY-MM-DD HH:mm:ss'), }],
   };
   
   db.addPurchaseOrder(newOrder);

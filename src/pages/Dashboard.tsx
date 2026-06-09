@@ -68,12 +68,12 @@ export default function Dashboard() {
 
   const fetchAlerts = useCallback(async () => {
     try {
-      const response = await api.get('/dashboard/alerts');
+      const response = await api.get('/dashboard/alerts', { params: filters, });
       setAlerts(response.data.data);
     } catch (error) {
       console.error('Failed to fetch alerts:', error);
     }
-  }, []);
+  }, [filters]);
 
   const fetchRegions = useCallback(async () => {
     try {
@@ -170,12 +170,12 @@ export default function Dashboard() {
   );
 
   const sortedDishes = useMemo(
-    () => [...(stats?.topDishes || [])].sort((a, b) => b.sales - a.sales),
-    [stats?.topDishes]
+    () => [...(stats?.dishRanking || stats?.topDishes || [])].sort((a, b) => (b.sales || b.quantity || 0) - (a.sales || a.quantity || 0)),
+    [stats?.dishRanking, stats?.topDishes]
   );
 
   const maxDishSales = useMemo(
-    () => Math.max(...sortedDishes.map((d) => d.sales), 1),
+    () => Math.max(...sortedDishes.map((d) => (d.sales || d.quantity || 1)), 1),
     [sortedDishes]
   );
 
@@ -332,7 +332,7 @@ export default function Dashboard() {
         />
         <StatCard
           title="在途配送"
-          value={stats.deliveriesInTransit}
+          value={stats.inTransitCount || stats.deliveriesInTransit}
           icon={<Truck size={24} />}
           colorTheme="yellow"
         />
@@ -355,7 +355,7 @@ export default function Dashboard() {
           </div>
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={stats.hourlyRevenue} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <AreaChart data={stats.hourTrend || stats.hourlyRevenue} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#00D4FF" stopOpacity={0.4} />
@@ -467,7 +467,7 @@ export default function Dashboard() {
           </div>
           <div className="space-y-4">
             {sortedDishes.map((dish, index) => (
-              <div key={dish.name} className="group">
+              <div key={dish.name || dish.dishName} className="group">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-3">
                     <span
@@ -484,17 +484,17 @@ export default function Dashboard() {
                       {index + 1}
                     </span>
                     <span className="font-medium group-hover:text-cyan-400 transition-colors">
-                      {dish.name}
+                      {dish.name || dish.dishName}
                     </span>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="text-sm text-slate-400 font-mono">{dish.sales.toLocaleString()} 份</span>
+                    <span className="text-sm text-slate-400 font-mono">{(dish.sales || dish.quantity || 0).toLocaleString()} 份</span>
                     <span
                       className={`text-xs font-medium ${
-                        dish.trend >= 0 ? 'text-green-400' : 'text-red-400'
+                        (dish.trend || dish.growth || 0) >= 0 ? 'text-green-400' : 'text-red-400'
                       }`}
                     >
-                      {dish.trend >= 0 ? '↑' : '↓'} {Math.abs(dish.trend).toFixed(1)}%
+                      {(dish.trend || dish.growth || 0) >= 0 ? '↑' : '↓'} {Math.abs(dish.trend || dish.growth || 0).toFixed(1)}%
                     </span>
                   </div>
                 </div>
@@ -502,7 +502,7 @@ export default function Dashboard() {
                   <div
                     className="h-full rounded-full transition-all duration-1000 ease-out"
                     style={{
-                      width: `${(dish.sales / maxDishSales) * 100}%`,
+                      width: `${((dish.sales || dish.quantity || 0) / maxDishSales) * 100}%`,
                       background: `linear-gradient(90deg, ${CHART_COLORS[index % CHART_COLORS.length]} 0%, ${
                         CHART_COLORS[(index + 1) % CHART_COLORS.length]
                       } 100%)`,

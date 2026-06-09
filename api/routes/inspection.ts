@@ -152,4 +152,54 @@ router.post('/checkout', authMiddleware, roleMiddleware(2), (req: AuthRequest, r
   } as ApiResponse<InspectionRecord>);
 });
 
+// NEW ROUTE
+router.post("/create-work-order", authMiddleware, roleMiddleware(2), (req: AuthRequest, res) => {
+  const { inspectionId, issueId, type, reason } = req.body;
+  const user = req.user!;
+  const record = db.getInspectionRecords().find(r => r.id === inspectionId);
+  if (!record) return res.json({ code: 404, message: "巡检记录不存在", data: null } as ApiResponse<null>);
+  const issue = record.issues.find(i => i.id === issueId);
+  if (!issue) return res.json({ code: 404, message: "问题记录不存在", data: null } as ApiResponse<null>);
+  const workOrder = {
+    id: "wo_" + Date.now(),
+    orderNo: "WO" + dayjs().format("YYYYMMDDHHmmss"),
+    type: type || "recall",
+    title: (type === "recall" ? "食品召回" : "产品下架") + " - " + issue.type,
+    description: reason || issue.description,
+    source: "inspection",
+    sourceId: inspectionId,
+    issueId: issueId,
+    storeId: record.storeId,
+    storeName: record.storeName,
+    status: "pending" as any,
+    priority: issue.severity === "critical" || issue.severity === "high" ? "high" : "normal",
+    createdBy: user.id,
+    createdByName: user.name,
+    createdAt: dayjs().format("YYYY-MM-DD HH:mm:ss"),
+    affectedItems: [],
+  };
+  const recallOrder = {
+    id: workOrder.id,
+    orderNo: workOrder.orderNo,
+    issueId: workOrder.issueId,
+    type: (workOrder.type === "recall" ? "voluntary" : "mandatory") as any,
+    productName: workOrder.description,
+    batchNo: "BATCH_" + Date.now(),
+    affectedStores: [workOrder.storeId],
+    supplierId: "SUP001",
+    supplierName: "默认供应商",
+    status: "pending" as any,
+    approvalHistory: [],
+    traceability: [],
+    createdAt: workOrder.createdAt,
+    reason: workOrder.description,
+    inspectionId: workOrder.sourceId,
+  };
+  db.addRecallOrder(recallOrder);
+  const updatedIssue = { ...issue, workOrderId: workOrder.id, workOrderNo: workOrder.orderNo };
+  const updatedIssues = record.issues.map(i => i.id === issueId ? updatedIssue : i);
+  db.updateInspectionRecord(inspectionId, { issues: updatedIssues });
+  res.json({ code: 200, message: "工单创建成功", data: { workOrder, inspection: { ...record, issues: updatedIssues } } } as ApiResponse<any>);
+});
+
 export default router;
