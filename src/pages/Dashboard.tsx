@@ -112,13 +112,21 @@ export default function Dashboard() {
     try {
       const response = await api.get('/reports/operation', {
         responseType: 'blob',
-        params: { period: filters.date.substring(0, 7), format: 'xlsx' },
+        params: { period: filters.date.substring(0, 7), format: 'xlsx', regionId: filters.regionId, storeId: filters.storeId },
       });
 
+      const contentDisposition = response.headers['content-disposition'];
+      let fileName = `operation_report_${filters.date.substring(0, 7)}.xlsx`;
+      if (contentDisposition) {
+        const matches = contentDisposition.match(/filename="?([^"]+)"?/);
+        if (matches && matches[1]) {
+          fileName = matches[1];
+        }
+      }
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `运营报告_${filters.date.substring(0, 7)}.xlsx`);
+      link.setAttribute('download', fileName);
       document.body.appendChild(link);
       link.click();
       link.remove();
