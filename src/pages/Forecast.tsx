@@ -78,7 +78,7 @@ export default function Forecast() {
   const handleGeneratePurchase = async () => {
     try {
       setSubmitting(true);
-      await api.post('/purchase', {
+      await api.post('/forecast/create-purchase', {
         forecastIds: selectedItems,
         storeId,
       });
@@ -86,7 +86,7 @@ export default function Forecast() {
       setSelectedItems([]);
       fetchForecasts();
     } catch (err: any) {
-      setError(err.message || '生成采购单失败');
+      setError(err.response?.data?.message || err.message || '生成采购单失败');
     } finally {
       setSubmitting(false);
     }

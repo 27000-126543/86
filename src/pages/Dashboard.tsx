@@ -112,7 +112,7 @@ export default function Dashboard() {
     try {
       const response = await api.get('/reports/operation', {
         responseType: 'blob',
-        params: { period: filters.date.substring(0, 7) },
+        params: { period: filters.date.substring(0, 7), format: 'xlsx' },
       });
 
       const url = window.URL.createObjectURL(new Blob([response.data]));

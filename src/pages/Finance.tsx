@@ -221,7 +221,7 @@ export default function Finance() {
           >
             <FileText size={16} />
           </button>
-          {(row.status === 'mismatch' || row.status === 'investigating') && (
+          {(row.status === 'discrepancy' || row.status === 'mismatch' || row.status === 'investigating') && (
             <button
               onClick={() => openInvestigateModal(row)}
               className="p-1.5 rounded-lg hover:bg-orange-500/20 text-slate-400 hover:text-orange-400 transition-colors"
@@ -300,7 +300,7 @@ export default function Finance() {
           >
             <Eye size={16} />
           </button>
-          {row.status === 'mismatch' && (
+          {(row.status === 'discrepancy' || row.status === 'mismatch') && (
             <button
               onClick={() => {
                 const transaction = transactions.find(t => t.id === row.transactionId);
@@ -589,7 +589,7 @@ export default function Finance() {
               >
                 关闭
               </button>
-              {(selectedTransaction.status === 'mismatch' || selectedTransaction.status === 'investigating') && (
+              {(selectedTransaction.status === 'discrepancy' || selectedTransaction.status === 'mismatch' || selectedTransaction.status === 'investigating') && (
                 <button
                   onClick={() => {
                     setDetailModalOpen(false);
@@ -683,7 +683,7 @@ export default function Finance() {
               <div className="p-4 rounded-xl bg-slate-800/30 border border-slate-700/50">
                 <p className="text-xs text-slate-500 mb-1">核查日期</p>
                 <p className="font-medium text-slate-200">{formatDate(selectedTransaction.date)}</p>
-                {selectedTransaction.status === 'mismatch' && (
+                {(selectedTransaction.status === 'discrepancy' || selectedTransaction.status === 'mismatch') && (
                   <p className="text-sm text-red-400 mt-1">存在对账差异</p>
                 )}
               </div>

@@ -56,7 +56,7 @@ const menuItems: MenuItem[] = [
   { path: '/alerts', label: '告警中心', icon: <AlertTriangle size={20} />, minLevel: 2 },
 ];
 
-export default function Layout() {
+export default function Layout({ children }: { children?: React.ReactNode }) {
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -359,7 +359,7 @@ export default function Layout() {
 
         {/* Main Content Area */}
         <main className="flex-1 p-4 md:p-6 overflow-auto">
-          <Outlet />
+          {children || <Outlet />}
         </main>
       </div>
     </div>

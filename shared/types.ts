@@ -361,7 +361,7 @@ export interface Member {
   levelHistory?: MemberLevelHistory[];
 }
 
-export type ReconciliationStatus = 'matched' | 'mismatch' | 'investigating' | 'resolved';
+export type ReconciliationStatus = 'matched' | 'mismatch' | 'discrepancy' | 'investigating' | 'resolved';
 
 export interface DailyTransaction {
   id: string;
@@ -385,13 +385,23 @@ export interface ReconciliationRecord {
   id: string;
   date: string;
   storeId: string;
-  storeName: string;
+  storeName?: string;
   transactionId?: string;
-  expectedAmount: number;
-  actualAmount: number;
-  difference: number;
+  expectedAmount?: number;
+  actualAmount?: number;
+  difference?: number;
+  systemAmount?: number;
+  bankAmount?: number;
+  variance?: number;
   status: ReconciliationStatus;
   remark?: string;
+  investigation?: {
+    reason: string;
+    priority: 'low' | 'normal' | 'high' | 'urgent';
+    startedAt: string;
+    status: string;
+  };
+  createdAt?: string;
 }
 
 export type AlertType = 'food_safety' | 'temperature' | 'equipment' | 'approval' | 'reconciliation';
@@ -420,6 +430,13 @@ export interface DashboardStats {
   recentAlerts: AlertItem[];
   hourlyRevenue: { hour: string; revenue: number }[];
   regionalRevenue: { region: string; revenue: number; target: number }[];
+  todayOrders?: number;
+  todayRevenue?: number;
+  dishRanking?: { name: string; sales: number; growth: number; dishName?: string; category?: string; quantity?: number; revenue?: number; revenueShare?: number }[];
+  deliveryOnTimeRate?: number;
+  inTransitCount?: number;
+  alertCount?: number;
+  hourTrend?: { hour: string; revenue: number; orders: number }[];
 }
 
 export interface ApprovalRule {
@@ -445,6 +462,10 @@ export interface CostDetailItem {
   budget: number;
   variance: number;
   variancePercent: number;
+  itemName?: string;
+  budgetAmount?: number;
+  actualAmount?: number;
+  varianceRate?: number;
 }
 
 export interface MonthlyOperationReport {
@@ -473,8 +494,18 @@ export interface MonthlyOperationReport {
   topStores: { name: string; revenue: number }[];
   bottomStores: { name: string; revenue: number }[];
   storeRanking?: { name: string; revenue: number; growth: number }[];
-  dishRanking: { name: string; sales: number; growth: number }[];
+  dishRanking: { name: string; sales: number; growth: number; dishName?: string; category?: string; quantity?: number; revenue?: number; revenueShare?: number }[];
   costDetails: CostDetailItem[];
+  targetRevenue?: number;
+  revenueGrowthYoy?: number;
+  regionalRevenue?: { region: string; revenue: number; growth: number; target?: number }[];
+  foodSafetyIssues?: number;
+  rectificationRate?: number;
+  storePerformance?: { name: string; revenue: number; growth: number; safetyRate: number; storeName?: string; issues?: number; foodSafetyRate?: number }[];
+  deliveryTotal?: number;
+  deliveryOnTime?: number;
+  deliveryOnTimeRate?: number;
+  deliveryExceptions?: number;
 }
 
 export interface CostControlReport {

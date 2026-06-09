@@ -55,6 +55,32 @@ class Database {
     return storeId ? this.forecastItems.filter(f => f.storeId === storeId) : this.forecastItems;
   }
   
+  getForecastItemById(id: string): ForecastItem | undefined {
+    return this.forecastItems.find(f => f.id === id);
+  }
+  
+  addForecastItems(items: ForecastItem[]): void {
+    items.forEach(item => {
+      const existingIdx = this.forecastItems.findIndex(
+        f => f.storeId === item.storeId && f.dishId === item.dishId && f.forecastDate === item.forecastDate
+      );
+      if (existingIdx !== -1) {
+        this.forecastItems[existingIdx] = item;
+      } else {
+        this.forecastItems.unshift(item);
+      }
+    });
+  }
+  
+  updateForecastItem(id: string, updates: Partial<ForecastItem>): ForecastItem | undefined {
+    const idx = this.forecastItems.findIndex(f => f.id === id);
+    if (idx !== -1) {
+      this.forecastItems[idx] = { ...this.forecastItems[idx], ...updates };
+      return this.forecastItems[idx];
+    }
+    return undefined;
+  }
+  
   getPurchaseOrders(storeId?: string, status?: string): PurchaseOrder[] {
     let orders = this.purchaseOrders;
     if (storeId) orders = orders.filter(o => o.storeId === storeId);
@@ -190,15 +216,84 @@ class Database {
     return undefined;
   }
   
-  getDailyTransactions(storeId?: string, date?: string): DailyTransaction[] {
+  getDailyTransactions(params?: { storeId?: string; date?: string; status?: string; startDate?: string; endDate?: string }): DailyTransaction[] {
     let result = this.dailyTransactions;
-    if (storeId) result = result.filter(t => t.storeId === storeId);
-    if (date) result = result.filter(t => t.date === date);
+    if (params?.storeId) result = result.filter(t => t.storeId === params.storeId);
+    if (params?.date) result = result.filter(t => t.date === params.date);
+    if (params?.status) result = result.filter(t => t.status === params.status);
+    if (params?.startDate) result = result.filter(t => t.date >= params.startDate);
+    if (params?.endDate) result = result.filter(t => t.date <= params.endDate);
     return result;
   }
   
-  getReconciliationRecords(storeId?: string): ReconciliationRecord[] {
-    return storeId ? this.reconciliationRecords.filter(r => r.storeId === storeId) : this.reconciliationRecords;
+  getDailyTransactionById(id: string): DailyTransaction | undefined {
+    return this.dailyTransactions.find(t => t.id === id);
+  }
+  
+  getReconciliationRecords(params?: { storeId?: string; status?: string; startDate?: string; endDate?: string }): ReconciliationRecord[] {
+    let result = this.reconciliationRecords;
+    if (params?.storeId) result = result.filter(r => r.storeId === params.storeId);
+    if (params?.status) result = result.filter(r => r.status === params.status);
+    if (params?.startDate) result = result.filter(r => r.date >= params.startDate);
+    if (params?.endDate) result = result.filter(r => r.date <= params.endDate);
+    return result;
+  }
+  
+  getReconciliationRecordById(id: string): ReconciliationRecord | undefined {
+    return this.reconciliationRecords.find(r => r.id === id);
+  }
+  
+  updateDailyTransaction(id: string, updates: Partial<DailyTransaction>): DailyTransaction | undefined {
+    const idx = this.dailyTransactions.findIndex(t => t.id === id);
+    if (idx !== -1) {
+      this.dailyTransactions[idx] = { ...this.dailyTransactions[idx], ...updates };
+      return this.dailyTransactions[idx];
+    }
+    return undefined;
+  }
+  
+  startInvestigation(recordId: string, reason: string, priority: 'low' | 'normal' | 'high' | 'urgent'): ReconciliationRecord | undefined {
+    const reconciliation = this.reconciliationRecords.find(r => r.id === recordId);
+    if (reconciliation) {
+      reconciliation.status = 'investigating';
+      reconciliation.investigation = {
+        reason,
+        priority,
+        startedAt: new Date().toISOString(),
+        status: 'in_progress'
+      };
+      if (reconciliation.transactionId) {
+        const transaction = this.dailyTransactions.find(t => t.id === reconciliation.transactionId);
+        if (transaction) {
+          transaction.status = 'investigating';
+        }
+      }
+      return reconciliation;
+    }
+    const transaction = this.dailyTransactions.find(t => t.id === recordId);
+    if (transaction) {
+      transaction.status = 'investigating';
+      const newRecord: ReconciliationRecord = {
+        id: uuidv4(),
+        storeId: transaction.storeId,
+        date: transaction.date,
+        systemAmount: transaction.totalRevenue,
+        bankAmount: transaction.totalRevenue * (0.97 + Math.random() * 0.05),
+        variance: 0,
+        status: 'investigating',
+        transactionId: transaction.id,
+        investigation: {
+          reason,
+          priority,
+          startedAt: new Date().toISOString(),
+          status: 'in_progress'
+        },
+        createdAt: new Date().toISOString()
+      };
+      this.reconciliationRecords.unshift(newRecord);
+      return newRecord;
+    }
+    return undefined;
   }
   
   updateReconciliationRecord(id: string, updates: Partial<ReconciliationRecord>): ReconciliationRecord | undefined {

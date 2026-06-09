@@ -76,7 +76,7 @@ export default function Reports() {
       if (filters.year) params.year = filters.year;
       if (filters.storeId) params.storeId = filters.storeId;
       const response = await api.get(`/reports/${type}`, {
-        params: { ...params, format: 'excel' },
+        params: { ...params, period: `${filters.year}${filters.month ? '-' + filters.month : ''}`, format: 'xlsx' },
         responseType: 'blob',
       });
       const url = window.URL.createObjectURL(new Blob([response.data]));
